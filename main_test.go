@@ -4,46 +4,107 @@ import (
 	"testing"
 )
 
-func TestGenerateRandomElement(t *testing.T) {
-	s := []int{1000, 20, 10, 15, 0}
-	for _, v := range s {
-		r := len(generateRandomElements(v))
-		if v != r {
-			t.Error("Excepted a slice with size:", v, "received with size:", r)
-		}
+var maximumTestCases = []struct {
+	name     string
+	data     []int
+	expected int
+}{
+	{
+		name:     "empty slice",
+		data:     []int{},
+		expected: 0,
+	},
+	{
+		name:     "single element",
+		data:     []int{7},
+		expected: 7,
+	},
+	{
+		name:     "all equal small",
+		data:     []int{5, 5, 5, 5},
+		expected: 5,
+	},
+	{
+		name:     "ascending 10 elems",
+		data:     []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+		expected: 10,
+	},
+	{
+		name:     "descending 12 elems",
+		data:     []int{100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 5, 1},
+		expected: 100,
+	},
+	{
+		name:     "mixed 15 elems",
+		data:     []int{3, 99, 2, 88, 1, 77, 4, 66, 5, 55, 6, 44, 7, 33, 8},
+		expected: 99,
+	},
+	{
+		name:     "middle is max",
+		data:     []int{1, 2, 3, 4, 100, 4, 3, 2, 1},
+		expected: 100,
+	},
+	{
+		name:     "many same max",
+		data:     []int{10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
+		expected: 10,
+	},
+}
+
+func TestMaximum(t *testing.T) {
+	for _, tt := range maximumTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maximum(tt.data)
+			if got != tt.expected {
+				t.Errorf("maximum(%v) = %d; want %d", tt.data, got, tt.expected)
+			}
+		})
 	}
+}
+
+func TestMaxChunks(t *testing.T) {
+	for _, tt := range maximumTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxChunks(tt.data)
+			if got != tt.expected {
+				t.Errorf("maxChunks(%v) = %d; want %d", tt.data, got, tt.expected)
+			}
+		})
+	}
+}
+
+var generateRandomElementsTests = []struct {
+	name     string
+	size     int
+	expected int
+}{
+	{"ZeroSize", 0, 0},
+	{"SmallSize", 3, 3},
+	{"NegativeSize", -5, 0},
+	{"LargeSize", 1000, 1000},
+}
+
+func TestGenerateRandomElement(t *testing.T) {
+	for _, tc := range generateRandomElementsTests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := generateRandomElements(tc.size)
+			if len(result) != tc.expected {
+				t.Errorf("expected length %d, got %d", tc.expected, len(result))
+			}
+		})
+	}
+}
+
+func TestGenerateRandomElementNotZero(t *testing.T) {
+	data := generateRandomElements(1000)
 	allZero := true
-	for _, v := range generateRandomElements(s[0]) {
+	for _, v := range data {
 		if v != 0 {
 			allZero = false
 			break
 		}
 	}
 	if allZero {
-		t.Error("1000 elemets were filled with zero, does random function work?")
-	}
-}
-
-func TestMaximum(t *testing.T) {
-	slices := [][]int{
-		{19, 0, 71, 49, 8},
-		{56, 29, 100, 2, 1, 7},
-		{71, 8, 4, 999, 781, 9},
-		{},
-	}
-	maxs := []int{71, 100, 999, 0}
-	for i, slice := range slices {
-		if maximum(slice) != maxs[i] {
-			t.Error(i, ":", maximum(slice), "!=", maxs[i])
-		}
-	}
-}
-
-func TestMaxChunks(t *testing.T) {
-	data := generateRandomElements(100_000_000)
-	max1 := maximum(data)
-	max2 := maxChunks(data)
-	if max1 != max2 {
-		t.Error("maximum and maxChunks found different max on the same data, maxinum:", max1, "maxChunks:", max2)
+		t.Errorf("all 1000 elements in randomly filled slice are zeros")
 	}
 }

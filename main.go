@@ -3,22 +3,23 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 const (
-	SIZE           = 100_000_000
-	CHUNKS         = 8
-	MIN_CHUNK_SIZE = 1000
+	SIZE   = 100_000_000
+	CHUNKS = 8
 )
 
 // generateRandomElements generates random elements.
 func generateRandomElements(size int) []int {
+	if size < 0 {
+		return nil
+	}
 	var rsl []int = make([]int, size)
-	if size > 0 {
-		for i, _ := range rsl {
-			rsl[i] = rand.Int()
-		}
+	for i := range rsl {
+		rsl[i] = rand.Int()
 	}
 	return rsl
 }
@@ -39,41 +40,34 @@ func maximum(data []int) int {
 
 // maxChunks returns the maximum number of elements in a chunks.
 func maxChunks(data []int) int {
-	l := len(data)
-	if l < CHUNKS*MIN_CHUNK_SIZE {
+	len := len(data)
+	if len < CHUNKS {
 		return maximum(data)
 	}
-	increment := l / CHUNKS
+	increment := len / CHUNKS
 	start := 0
-	maxCh := make(chan int, CHUNKS)
+	localMaxs := make([]int, CHUNKS)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 	routineCounter := 0
-	for start < l {
+	for start < len {
 		end := start + increment
-		if end > l || routineCounter == CHUNKS-1 {
-			end = l
+		if routineCounter == CHUNKS-1 {
+			end = len
 		}
-
-		go func(start, end int) {
-			max := data[start]
-			for i := start; i < end; i++ {
-				if data[i] > max {
-					max = data[i]
-				}
-			}
-			maxCh <- max
-		}(start, end)
+		wg.Add(1)
+		go func(start, end, n int) {
+			defer wg.Done()
+			max := maximum(data[start:end])
+			mu.Lock()
+			localMaxs[n] = max
+			mu.Unlock()
+		}(start, end, routineCounter)
 		routineCounter++
-
 		start = end
 	}
-
-	max := data[0]
-	for i := 0; i < routineCounter; i++ {
-		localMax := <-maxCh
-		if localMax > max {
-			max = localMax
-		}
-	}
+	wg.Wait()
+	max := maximum(localMaxs)
 	return max
 }
 
